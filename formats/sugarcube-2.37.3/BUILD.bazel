@@ -1,0 +1,7 @@
+load('//:defs.bzl', 'sugarcube_format')
+
+sugarcube_format(
+    name = "format",
+    src = "format.js",
+    visibility = ["//visibility:public"],
+)

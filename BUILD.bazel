@@ -1,0 +1,29 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+sh_binary(
+    name = "scp_to_html",
+    srcs = [
+        "scp_to_html.sh",
+    ],
+)
+
+sh_binary(
+    name = "split_format_file",
+    srcs = [
+        "split_format_file.sh",
+    ],
+)
+
+sh_binary(
+    name = "make_story",
+    srcs = [
+        "make_story.sh",
+    ],
+)
+
+sh_binary(
+    name = "make_inner_data",
+    srcs = [
+        "make_inner_data.sh",
+    ],
+)
