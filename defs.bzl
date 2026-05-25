@@ -42,7 +42,7 @@ sugarcube_library = rule(
         "deps": attr.label_list(allow_files = [".html"], providers = [SugarcubeLibraryInfo]),
         "data": attr.label_list(),
         "_scp_to_html": attr.label(
-            default = Label("//:scp_to_html"),
+            default = Label("//scripts:scp_to_html"),
             executable = True,
             cfg = "exec",
         ),
@@ -147,12 +147,12 @@ sugarcube_story = rule(
             cfg = "exec",
         ),
         "_make_story": attr.label(
-            default = Label("//:make_story"),
+            default = Label("//scripts:make_story"),
             executable = True,
             cfg = "exec",
         ),
         "_make_inner_data": attr.label(
-            default = Label("//:make_inner_data"),
+            default = Label("//scripts:make_inner_data"),
             executable = True,
             cfg = "exec",
         ),
@@ -186,7 +186,7 @@ sugarcube_format = rule(
     attrs = {
         "src": attr.label(mandatory = True, allow_single_file = True,),
         "_split_format_file": attr.label(
-            default = Label("//:split_format_file"),
+            default = Label("//scripts:split_format_file"),
             executable = True,
             cfg = "exec",
         ),

@@ -1,0 +1,18 @@
+load('@sugarcube_bazel//:defs.bzl', 'sugarcube_library')
+
+package(default_visibility = ["//:__subpackages__"])
+
+filegroup(
+  name = "mall_data",
+  srcs = ["closed_sign.jpg"],
+)
+
+sugarcube_library(
+  name = "mall",
+  srcs = [
+    "mall.scp",
+  ],
+  data = [
+    ":mall_data",
+  ],
+)

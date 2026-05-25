@@ -1,0 +1,10 @@
+load('@sugarcube_bazel//:defs.bzl', 'sugarcube_library')
+
+package(default_visibility = ["//:__subpackages__"])
+
+sugarcube_library(
+  name = "home",
+  srcs = [
+    "home.scp",
+  ],
+)

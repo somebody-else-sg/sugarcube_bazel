@@ -1,0 +1,13 @@
+/* PASSAGE: Stats */
+[img[passages/mall_pic.jpg]]
+
+<<if $mallvisits is 0>>
+You have not yet visited the mall, what are you waiting for?
+<<elseif $mallvisits lt 5>>
+You've been to the mall, did you find anything interesting?
+<<else>>
+You're insane! You keep going to the mall expecting a different outcome!
+<<endif>>
+
+<<return>>
+

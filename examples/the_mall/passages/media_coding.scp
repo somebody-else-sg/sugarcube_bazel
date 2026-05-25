@@ -1,0 +1,5 @@
+/* PASSAGE: MediaCoding */
+
+<<widget "image">><<nobr>>
+  <<print '<img src="' + _args[0] + '" width=' + _args[1] + '>'>>
+<</nobr>><</widget>>

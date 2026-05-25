@@ -1,0 +1,24 @@
+load('@sugarcube_bazel//:defs.bzl', 'sugarcube_story')
+
+package(default_visibility = ["//:__subpackages__"])
+
+filegroup(
+    name = "user_scripts",
+    srcs = ["user_script.html"],
+)
+
+filegroup(
+    name = "user_stylesheet",
+    srcs = ["user_stylesheet.html"],
+)
+
+sugarcube_story(
+  name = "the_mall",
+  title = "The Mall",
+  ifid = "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+  user_stylesheet = ":user_stylesheet",
+  user_script = ":user_scripts",
+  deps = [
+    "//passages:start",
+  ],
+)

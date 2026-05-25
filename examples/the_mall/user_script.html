@@ -1,0 +1,28 @@
+<script role="script" id="twine-user-script" type="text/twine-javascript">
+/* twine-user-script-joiner */
+
+(function () {
+    // v1.1.1
+    'use strict';
+
+    function say_hello ($output) {
+        var $box = $(document.createElement('div'))
+            .addClass(createSlug('hello') + ' say_hello');
+
+        $box.wiki("Hello!");
+
+        $box.appendTo($output);
+    }
+
+    setup.say_hello = say_hello;
+
+    Macro.add('say_hello', {
+        // say_hello macro
+        handler : function () {
+            say_hello(this.output);
+        }
+    });
+
+}());
+
+</script>

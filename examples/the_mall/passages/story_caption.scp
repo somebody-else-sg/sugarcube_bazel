@@ -1,0 +1,4 @@
+/* PASSAGE: StoryCaption */\
+Cash: $<<print $cash>>
+Visits: <<print $mallvisits>>
+<<image "passages/mall_pic.jpg" 174>>

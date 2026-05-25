@@ -1,0 +1,6 @@
+/* PASSAGE: Mall */
+[img[passages/mall/closed_sign.jpg]]
+
+''//The mall is closed, that's a shame. Maybe I should come back later.//''
+<<set $mallvisits += 1>>
+[[Leave|Locations]]

@@ -1,0 +1,47 @@
+load('@sugarcube_bazel//:defs.bzl', 'sugarcube_library')
+
+package(default_visibility = ["//:__subpackages__"])
+
+sugarcube_library(
+  name = "widgets",
+  tags = ["widget"],
+  srcs = [
+    "media_coding.scp",
+  ],
+)
+
+sugarcube_library(
+  name = "locations",
+  srcs = [
+    "locations.scp",
+  ],
+  deps = [
+    "//passages/home",
+    "//passages/mall",
+  ],
+)
+
+filegroup(
+  name = "menu_data",
+  srcs = ["mall_pic.jpg"],
+)
+
+sugarcube_library(
+  name = "start",
+  srcs = [
+    "start.scp",
+    "stats.scp",
+    "story_author.scp",
+    "story_caption.scp",
+    "story_init.scp",
+    "story_menu.scp",
+    "story_subtitle.scp",
+  ],
+  deps = [
+    ":widgets",
+    ":locations",
+  ],
+  data = [
+    ":menu_data",
+  ],
+)

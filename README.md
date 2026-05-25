@@ -87,6 +87,8 @@ build your SugarCube game. This is how a top-level `BUILD.bazel` file might look
 # In BUILD.bazel:
 load('@sugarcube_bazel//:defs.bzl', 'sugarcube_story')
 
+package(default_visibility = ["//:__subpackages__"])
+
 filegroup(
     name = "user_scripts",
     srcs = ["user_script.html"],
@@ -172,6 +174,8 @@ the elements explained in in-line comments:
 
 ```py
 load('@sugarcube_bazel//:defs.bzl', 'sugarcube_library')
+
+package(default_visibility = ["//:__subpackages__"])
 
 # Define a new sugarcube library for widgets.
 sugarcube_library(

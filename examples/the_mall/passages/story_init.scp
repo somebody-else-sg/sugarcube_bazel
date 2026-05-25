@@ -1,0 +1,6 @@
+/* PASSAGE: StoryInit */
+<<run State.prng.init()>>
+
+/* Core Stats */
+<<set $mallvisits to 0>>
+<<set $cash to 100>>
