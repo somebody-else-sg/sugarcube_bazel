@@ -1,4 +1,5 @@
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_python//python:py_binary.bzl", "py_binary")
 
 sh_binary(
     name = "scp_to_html",
@@ -36,6 +37,22 @@ sh_binary(
     name = "extract_passage",
     srcs = [
         "extract_passage.sh",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "check_sugarcube_macros",
+    srcs = [
+        "check_sugarcube_macros.py",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "builtin_macros",
+    srcs = [
+        "sugarcube_macro_list.json",
     ],
     visibility = ["//visibility:public"],
 )

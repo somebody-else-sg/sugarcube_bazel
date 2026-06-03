@@ -7,7 +7,7 @@ You have not yet visited the mall, what are you waiting for?
 You've been to the mall, did you find anything interesting?
 <<else>>
 You're insane! You keep going to the mall expecting a different outcome!
-<<endif>>
+<</if>>
 
 <<return>>
 

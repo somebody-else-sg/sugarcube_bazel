@@ -1,0 +1,143 @@
+{
+  "if": {
+    "tags": ["elseif", "else"],
+    "is_container": true
+  },
+  "capture": {
+    "is_container": true
+  },
+  "set": {},
+  "remember": {
+    "deprecated_for": "set"
+  },
+  "unset": {},
+  "forget": {
+    "deprecated_for": "unset"
+  },
+  "run": {},
+  "script": {
+    "is_container": true
+  },
+  "=": {},
+  "-": {},
+  "do": {
+    "is_container": true
+  },
+  "include": {},
+  "display": {
+    "deprecated_for": "include"
+  },
+  "nobr": {
+    "is_container": true
+  },
+  "print": {},
+  "redo": {},
+  "silent": {
+    "is_container": true
+  },
+  "silently": {
+    "is_container": true,
+    "deprecated_for": "silent"
+  },
+  "type": {
+    "is_container": true
+  },
+  "for": {
+    "is_container": true
+  },
+  "break": {},
+  "continue": {},
+  "switch": {
+    "tags": ["case", "default"],
+    "is_container": true
+  },
+  "button": {
+    "is_container": true
+  },
+  "checkbox": {},
+  "cycle": {
+    "tags": ["option", "optionsfrom"],
+    "is_container": true
+  },
+  "link": {
+    "is_container": true
+  },
+  "click": {
+    "is_container": true,
+    "deprecated_for": "link"
+  },
+  "linkappend": {
+    "is_container": true
+  },
+  "linkprepend": {
+    "is_container": true
+  },
+  "linkreplace": {
+    "is_container": true
+  },
+  "listbox": {
+    "tags": ["option", "optionsfrom"],
+    "is_container": true
+  },
+  "numberbox": {},
+  "radiobutton": {},
+  "textarea": {},
+  "textbox": {},
+  "back": {},
+  "return": {},
+  "actions": {
+    "deprecated_for": "unknown"
+  },
+  "choice": {
+    "deprecated_for": "unknown"
+  },
+  "addclass" : {},
+  "append": {
+    "is_container": true
+  },
+  "copy": {},
+  "prepend": {
+    "is_container": true
+  },
+  "remove": {},
+  "removeclass": {},
+  "replace": {
+    "is_container": true
+  },
+  "toggleclass": {},
+  "audio": {},
+  "cacheaudio": {},
+  "createaudiogroup": {
+    "is_container": true
+  },
+  "createplaylist": {
+    "tags": ["track"],
+    "is_container": true
+  },
+  "setplaylist":  {
+    "deprecated_for": "createplaylist"
+  },
+  "masteraudio": {},
+  "stopallaudio":  {
+    "deprecated_for": "masteraudio"
+  },
+  "playlist": {},
+  "removeaudiogroup": {},
+  "removeplaylist": {},
+  "waitforaudio": {},
+  "done": {
+    "is_container": true
+  },
+  "goto": {},
+  "repeat": {
+    "is_container": true
+  },
+  "stop": {},
+  "timed": {
+    "tags": ["next"],
+    "is_container": true
+  },
+  "widget": {
+    "is_container": true
+  }
+}

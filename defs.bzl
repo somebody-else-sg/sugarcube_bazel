@@ -1,7 +1,9 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 SugarcubeLibraryInfo = provider(
     "Info specific to a sugarcube library of passages.",
+    fields = ["passages", "widgets"]
 )
 
 def _sugarcube_library_impl(ctx):
@@ -25,15 +27,27 @@ def _sugarcube_library_impl(ctx):
     runfiles = ctx.runfiles(files = ctx.files.data)
     all_libs = []
     all_runfiles = []
+    transitive_passages = []
+    transitive_widgets = []
     for dep in ctx.attr.deps:
         all_libs = all_libs + [depset([lib_file]) for lib_file in dep[DefaultInfo].files.to_list()]
         all_runfiles.append(dep[DefaultInfo].default_runfiles)
+        if not SugarcubeLibraryInfo in dep:
+            fail("Should only have sugarcube libraries in dependencies!", "Are you sure this is not data?", "Target", dep.label, "as dependency of", ctx.label)
+        transitive_passages.append(dep[SugarcubeLibraryInfo].passages)
+        transitive_widgets.append(dep[SugarcubeLibraryInfo].widgets)
     for dep in ctx.attr.data:
         if SugarcubeLibraryInfo in dep:
             fail("Should not have sugarcube library in a data dependency!", "Are you sure this is data?", "Data target", dep.label, "as dependency of", ctx.label)
     runfiles = runfiles.merge_all(all_runfiles)
+    if "widget" in ctx.attr.tags:
+        passages = depset([], transitive = transitive_passages)
+        widgets = depset(srcs, transitive = transitive_widgets)
+    else:
+        passages = depset(srcs, transitive = transitive_passages)
+        widgets = depset([], transitive = transitive_widgets)
 
-    return [DefaultInfo(files = depset([output_file], transitive = all_libs), default_runfiles = runfiles), SugarcubeLibraryInfo()]
+    return [DefaultInfo(files = depset([output_file], transitive = all_libs), default_runfiles = runfiles), SugarcubeLibraryInfo(passages = passages, widgets = widgets)]
 
 sugarcube_library = rule(
     implementation = _sugarcube_library_impl,
@@ -42,7 +56,7 @@ sugarcube_library = rule(
         "deps": attr.label_list(allow_files = [".html"], providers = [SugarcubeLibraryInfo]),
         "data": attr.label_list(),
         "_scp_to_html": attr.label(
-            default = Label("//scripts:scp_to_html"),
+            default = Label("@sugarcube_bazel//scripts:scp_to_html"),
             executable = True,
             cfg = "exec",
         ),
@@ -56,9 +70,15 @@ def _sugarcube_story_impl(ctx):
     runfiles = ctx.runfiles()
     all_libs = []
     all_runfiles = []
+    all_passages = []
+    all_widgets = []
     for dep in ctx.attr.deps:
         all_libs = all_libs + dep[DefaultInfo].files.to_list()
         all_runfiles.append(dep[DefaultInfo].default_runfiles)
+        if not SugarcubeLibraryInfo in dep:
+            fail("Should only have sugarcube libraries in dependencies!", "Are you sure this is not data?", "Target", dep.label, "as dependency of", ctx.label)
+        all_passages += dep[SugarcubeLibraryInfo].passages.to_list()
+        all_widgets += dep[SugarcubeLibraryInfo].widgets.to_list()
     all_inputs = depset(all_libs)
     runfiles = runfiles.merge_all(all_runfiles)
 
@@ -67,6 +87,40 @@ def _sugarcube_story_impl(ctx):
         asset_path = ctx.actions.declare_file(paths.join(ctx.label.name, rf.path))
         ctx.actions.symlink(output=asset_path, target_file=rf)
         all_assets.append(asset_path)
+
+    if ctx.attr._enable_checks_flag[BuildSettingInfo].value:
+        builtin_macros = ctx.attr._builtin_macros.files.to_list()
+        for mac in ctx.attr.user_macros:
+            builtin_macros += mac.files.to_list()
+
+        widgets_macros = ctx.actions.declare_file(ctx.label.name + "_widgets_macros.json")
+        widgets_args = ctx.actions.args()
+        widgets_args.add_all("--macros", builtin_macros)
+        widgets_args.add_all("--passages", all_widgets)
+        widgets_args.add("--output", widgets_macros)
+        widgets_args.add("--extract_widgets")
+        widgets_args.add("--ignore_unknown")
+        ctx.actions.run(
+            mnemonic = "CollectWidgetMacros",
+            executable = ctx.executable._check_sugarcube_macros,
+            arguments = [widgets_args],
+            inputs = depset(builtin_macros + all_widgets),
+            outputs = [widgets_macros],
+        )
+
+        macro_errors = ctx.actions.declare_file(ctx.label.name + "_macro_errors.json")
+        check_args = ctx.actions.args()
+        check_args.add_all("--macros", builtin_macros + [widgets_macros])
+        check_args.add_all("--passages", all_passages + all_widgets)
+        check_args.add("--output", macro_errors)
+        ctx.actions.run(
+            mnemonic = "CheckMacroUsage",
+            executable = ctx.executable._check_sugarcube_macros,
+            arguments = [check_args],
+            inputs = depset(builtin_macros + [widgets_macros] + all_passages + all_widgets),
+            outputs = [macro_errors],
+        )
+
 
     inner_file = ctx.actions.declare_file(ctx.label.name + "_inner.html")
     inner_args = ctx.actions.args()
@@ -89,12 +143,12 @@ def _sugarcube_story_impl(ctx):
             fmt_template_file = fmt_file
 
     html_inserts = []
-    if ctx.attr.user_stylesheet:
-        html_inserts += ctx.attr.user_stylesheet.files.to_list()
-    if ctx.attr.user_script:
-        html_inserts += ctx.attr.user_script.files.to_list()
+    for sheet in ctx.attr.user_stylesheet:
+        html_inserts += sheet.files.to_list()
+    for script in ctx.attr.user_script:
+        html_inserts += script.files.to_list()
 
-    storydata_file = ctx.actions.declare_file(paths.join(ctx.label.name, "storydata.html"))
+    storydata_file = ctx.actions.declare_file(ctx.label.name + "_storydata.html")
     storydata_cmd = "cat <(echo -n '<tw-storydata name=\"{}\" startnode=\"1\" ifid=\"{}\" format=\"') {} <(echo -n '\" format-version=\"') {} <(echo '\" hidden>') {} <(echo '</tw-storydata>') > {}".format(
         _html_escape(ctx.attr.title), _html_escape(ctx.attr.ifid),
         fmt_name_file.path, fmt_version_file.path,
@@ -112,26 +166,20 @@ def _sugarcube_story_impl(ctx):
     args.add(storydata_file)
     args.add(fmt_template_file)
     args.add(output_file)
+    make_story_inputs = [storydata_file, fmt_template_file]
+    if ctx.attr._enable_checks_flag[BuildSettingInfo].value:
+        make_story_inputs += [macro_errors]
     ctx.actions.run(
         mnemonic = "MakeStory",
         executable = ctx.executable._make_story,
         arguments = [args],
-        inputs = [storydata_file, fmt_template_file],
+        inputs = make_story_inputs,
         outputs = [output_file],
-    )
-
-    passagedata_file = ctx.actions.declare_file(paths.join(ctx.label.name, "passagedata.html"))
-    passagedata_cmd = "cat <(echo '<root>') {} <(echo '</root>') > {}".format(inner_file.path, passagedata_file.path)
-    ctx.actions.run_shell(
-        mnemonic = "MakePassageData",
-        inputs = [inner_file],
-        outputs = [passagedata_file],
-        command = passagedata_cmd,
     )
 
     return [
         DefaultInfo(files = depset([output_file]), runfiles = ctx.runfiles(files = all_assets)),
-        OutputGroupInfo(assets = all_assets, passagedata = [passagedata_file]),
+        OutputGroupInfo(assets = all_assets, macro_errors = depset([macro_errors] if ctx.attr._enable_checks_flag[BuildSettingInfo].value else [])),
     ]
 
 sugarcube_story = rule(
@@ -140,20 +188,34 @@ sugarcube_story = rule(
         "title": attr.string(mandatory = True),
         "ifid": attr.string(mandatory = True),
         "deps": attr.label_list(),
-        "user_stylesheet": attr.label(),
-        "user_script": attr.label(),
+        "user_stylesheet": attr.label_list(),
+        "user_script": attr.label_list(),
+        "user_macros": attr.label_list(),
         "format": attr.label(
-            default = Label("//formats/sugarcube-2.37.3:format"),
+            default = Label("@sugarcube_bazel//formats/sugarcube-2.37.3:format"),
             cfg = "exec",
         ),
         "_make_story": attr.label(
-            default = Label("//scripts:make_story"),
+            default = Label("@sugarcube_bazel//scripts:make_story"),
             executable = True,
             cfg = "exec",
         ),
         "_make_inner_data": attr.label(
-            default = Label("//scripts:make_inner_data"),
+            default = Label("@sugarcube_bazel//scripts:make_inner_data"),
             executable = True,
+            cfg = "exec",
+        ),
+        "_check_sugarcube_macros": attr.label(
+            default = Label("@sugarcube_bazel//scripts:check_sugarcube_macros"),
+            executable = True,
+            cfg = "exec",
+        ),
+        "_builtin_macros": attr.label(
+            default = Label("@sugarcube_bazel//scripts:builtin_macros"),
+            cfg = "exec",
+        ),
+        "_enable_checks_flag": attr.label(
+            default = Label("@sugarcube_bazel//:enable_checks"),
             cfg = "exec",
         ),
     },
@@ -186,7 +248,7 @@ sugarcube_format = rule(
     attrs = {
         "src": attr.label(mandatory = True, allow_single_file = True,),
         "_split_format_file": attr.label(
-            default = Label("//scripts:split_format_file"),
+            default = Label("@sugarcube_bazel//scripts:split_format_file"),
             executable = True,
             cfg = "exec",
         ),

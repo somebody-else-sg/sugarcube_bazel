@@ -34,6 +34,9 @@ to get started, even without being familiar with it.
  - Bash environment: MacOS and Linux should work out of the box. Windows apparently
    could also work with a bash environment such MSYS2, but not tested. See Bazel
    documentation on that.
+ - Python3 environment: The passage checker is written in Python. Checks can be
+   disabled, but that is not recommended. Only a vanilla Python interpreter is
+   needed, no pip/uv packages.
  - Bazel: [See Bazel's Getting Started Guide](https://bazel.build/start)
  - Tools (to install by whatever method is appropriate):
    - `GNU/coreutils` for basic commands (should be part of any system with bash)
@@ -55,12 +58,13 @@ git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "g
 
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "rules_shell", version = "0.8.0")
+bazel_dep(name = "rules_python", version = "2.0.2")
 
 # sugarcube_bazel
 git_repository(
-    name = "sugarcube_bazel",
-    branch = "main",
-    remote = "https://github.com/somebody-else-sg/sugarcube_bazel.git",
+  name = "sugarcube_bazel",
+  branch = "main",
+  remote = "https://github.com/somebody-else-sg/sugarcube_bazel.git",
 )
 
 ```
@@ -70,17 +74,23 @@ you want to give it. Note that this is the overall project which could contain m
 games. In fact, one benefit of `sugarcube_bazel` is being able to create multiple games
 that share many passages and assets, but still produce standalone deployments.
 
-The lines with `bazel_skylib` and `rules_shell` simply import dependencies of `sugarcube_bazel`.
-And, of course, the `git_repository` statement imports `sugarcube_bazel` itself. Note that
-the `branch = "main"` line could be replaced by either `commit = "<commit hash>"` or `tag = "<tag name>"`
-to point to a particular commit or tag rather than the latest state of the main branch.
+The lines with `bazel_skylib`, `rules_shell` and `rules_python` simply import dependencies
+of `sugarcube_bazel`. And, of course, the `git_repository` statement imports `sugarcube_bazel`
+itself. Note that the `branch = "main"` line could be replaced by either `commit = "<commit hash>"`
+or `tag = "<tag name>"` to point to a particular commit or tag rather than the latest state
+of the main branch.
 
 ### Defining a sugarcube_story target
 
+The following section describes how to define a sugarcube story and the libraries of passages
+it depends on. For a complete example, see the `examples/the_mall` directory.
+
 Bazel, like most build systems, works by defining build "targets", usually on a per-directory
 basis. In Bazel, any file called `BUILD.bazel` in a directory is interpreted as defining such
-targets, and the directories are searched down recursively. Typically, at the top-level, you
-would create a `sugarcube_story` target which is going to be the top-level target use to
+targets, and the directories are searched down recursively, stopping at any directory that
+does not contain a `BUILD.bazel` (so, you might have to leave empty `BUILD.bazel` files in
+intermediate directories that don't contain targets). Typically, at the top-level, you
+would create a `sugarcube_story` target which is going to be the top-level target to
 build your SugarCube game. This is how a top-level `BUILD.bazel` file might look like:
 
 ```py
@@ -90,21 +100,27 @@ load('@sugarcube_bazel//:defs.bzl', 'sugarcube_story')
 package(default_visibility = ["//:__subpackages__"])
 
 filegroup(
-    name = "user_scripts",
-    srcs = ["user_script.html"],
+  name = "user_scripts",
+  srcs = ["user_script.html"],
 )
 
 filegroup(
-    name = "user_stylesheet",
-    srcs = ["user_stylesheet.html"],
+  name = "user_stylesheet",
+  srcs = ["user_stylesheet.html"],
+)
+
+filegroup(
+  name = "user_macros",
+  srcs = ["user_macros.json"],
 )
 
 sugarcube_story(
   name = "my_story",
   title = "My Story Title",
   ifid = "<insert IFID number>",
-  user_stylesheet = ":user_stylesheet",
-  user_script = ":user_scripts",
+  user_stylesheet = [":user_stylesheet"],
+  user_script = [":user_scripts"],
+  user_macros = [":user_macros"],
   deps = [
     "//passages:start",
     "//passages/my_story", # Game-specific libraries
@@ -114,19 +130,32 @@ sugarcube_story(
 
 The `sugarcube_story` rule expects a few parameters:
 
- - `name`: The name of the target (can be anything, it will not appear in the output).
+ - `name`: The name of the target, which can be anything, it will not appear in the
+   output but it's how you refer to that target within Bazel.
  - `title`: The title of the story as it will appear in places such as the title-bar
    of the browser's tab.
  - `ifid`: The IFID (Interactive Fiction IDentifier) number assigned to this SugarCube
    game. See [TADS.org](https://www.tads.org/ifidgen/ifidgen).
- - `user_stylesheet`: The CSS stylesheets, i.e., html files containing only a block starting
-   with `<style role="stylesheet" id="<some name>" type="text/twine-css">`,
-   containing user-defined stylesheets for your story. Note that there can be multiple files.
- - `user_scripts`: The user scripts, i.e., html files containing only a block starting
-   with `<script role="script" id="<some name>" type="text/twine-javascript">`,
-   containing user-defined javascript for your story. Note that there can be multiple files.
  - `deps`: The list of libraries of passages that the story depends on. See the next
    section on definining libraries.
+ - `user_stylesheet` (optional): The CSS stylesheets, i.e., html files containing only a block starting
+   with `<style role="stylesheet" id="<some name>" type="text/twine-css">`,
+   containing user-defined stylesheets for your story. Note that there can be multiple files.
+ - `user_scripts` (optional): The user scripts, i.e., html files containing only a block starting
+   with `<script role="script" id="<some name>" type="text/twine-javascript">`,
+   containing user-defined javascript for your story. Note that there can be multiple files.
+ - `user_macros` (optional): The user macros list. This is a special json file that is used to list
+   all the macros that are added in the user scripts. This is needed because this build
+   system checks passages for correct usage of macros (e.g., correct nesting, no deprecated
+   macros, etc.). So, it needs to know all the macros that exist. The built-in macros of
+   Sugarcube are already known (see `scripts/sugarcube_macro_list.json`). The macros
+   created via "widget" passages (i.e., with the "widget" macro) will be automatically
+   gathered during the build. What cannot be gathered automatically, however, are
+   the macros that are added via Javascript, e.g., using `Macro.add()`, either in one
+   of the user scripts html elements or wherever else they could be added. And, thus,
+   this `user_macros` option all you to provide a list of such macros, see the list
+   of built-in macros (`scripts/sugarcube_macro_list.json`) to see how that json file
+   looks like.
  - `format` (optional): The Sugarcube format file to use, by default it uses
    `@sugarcube_bazel//formats/sugarcube-2.37.3:format`, but other formats are
    available and new ones can be defined with the `sugarcube_format` rule.
@@ -144,7 +173,7 @@ After building the story, the `index.html` file will be generated in the build d
 Bazel should print out that path, it should be `bazel-bin/my_story/index.html`. In that
 build directory, alongside `index.html`, you should also find all the assets of all the
 passages that were used to create the story (as symbolic links, not copies!). In other
-words, the build folder should contain all the files needed to deploy/serve the game.
+words, the build directory should contain all the files needed to deploy/serve the game.
 
 ### Defining sugarcube_library targets
 
@@ -229,8 +258,99 @@ sugarcube_library(
 )
 ```
 
+A typical passage might look like this (i.e., a text file with the preamble `/* PASSAGE: Stats */`
+and then the content, pretty simple):
+
+```
+/* PASSAGE: Stats */
+[img[passages/mall_pic.jpg]]
+
+<<if $mallvisits is 0>>
+You have not yet visited the mall, what are you waiting for?
+<<elseif $mallvisits lt 5>>
+You've been to the mall, did you find anything interesting?
+<<else>>
+You're insane! You keep going to the mall expecting a different outcome!
+<</if>>
+
+<<return>>
+```
+
 That's pretty much all there is to it. There are probably some Bazel-specific knowledge missing
 or assumed from this quick guide, see the Bazel docs for more info.
+
+### Checks
+
+This sugarcube build system provides several layers of checks.
+
+First, inherent to Bazel, all files declared as making up a target of any kind,
+including `filegroup` targets (e.g., typical for assets like images and videos),
+must exist. Any modification to the files triggers the re-building of whatever
+steps are necessary (i.e., that's why build systems exist, ultimately). Similarly,
+required fields cannot be missing from targe definitions.
+
+Second, certain rules are applied to make sure that only libraries are listed
+as dependencies and only ordinary files are listed as data dependencies (aka assets).
+That prevents basic mix-ups in defining the targets.
+
+Third, passage names (aka IDs) are gathered for all the passages that ultimately
+form one complete story, and any duplicate names will result in a build error
+pointing to the location of the duplication.
+
+Finally, each passage's content is checked for proper use of Sugarcube Macros.
+The checks include:
+
+ - Wrong nesting of "container" macros, e.g., `<<foo ..>>` without a `<</foo>>`
+   to close it out at that right nesting level.
+ - Deprecated macros, e.g., `<<remember ..>>` should be replaced with `<<set ..>>`.
+ - Unknown macros or widgets, catching typos.
+ - Macros defined with `<<widget ..>>` that have the same name or the name of
+   a built-in macro (or a Javascript `Macro.add`). This is not technically
+   an error when rendering the sugarcube story, but it's a very bad thing to
+   do because which macro takes precedence is arbitrary.
+
+This final set of checks can be disabled with a build command option, e.g.:
+
+```sh
+bazel build //:my_story --@sugarcube_bazel//:enable_checks=false
+```
+
+N.B.: Disabling those checks also avoids Python if, for some reason, there's
+an issue getting that working on your system.
+
+The macro usage checks rely on having a full list of macros available. That
+list is constructed from the built-in macros (see `scripts/sugarcube_macro_list.json`),
+then adding the story's `user_macros` (see `sugarcube_story` rule described
+above), and finally gathering all the macros defined using `<<widget ..>>` in
+the passages marked with the `widget` tag (as required by Sugarcube). Thus,
+any macro that your story uses that is neither part of the core Sugarcube
+language nor defined in a widget passage should be listed in a json file
+and passed in via the `user_macros` argument to your `sugarcube_story`.
+This exert from the built-in list should give a good idea of how that
+json file looks like:
+
+```json
+{
+  "if": {
+    "tags": ["elseif", "else"],
+    "is_container": true
+  },
+  "capture": {
+    "is_container": true
+  },
+  "set": {},
+  "remember": {
+    "deprecated_for": "set"
+  }
+}
+```
+
+A simple macro with no "content" (no open and close pair) just needs to be
+listed (like `"set": {},`). A container macro should be contain the boolean
+`is_container` field (like `"capture": { "is_container": true }`). A multi-stage
+macro, such as `if-elseif-else`, should list its intermediate tags.
+Finally, a deprecated macro can point to its suggested replacement, if no
+direct replacement exists, use `"deprecated_for": "unknown"`.
 
 ## License
 

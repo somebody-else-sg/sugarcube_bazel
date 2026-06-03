@@ -1,0 +1,14 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+
+bool_flag(
+    name = "enable_checks",
+    build_setting_default = True,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "checks_enabled",
+    flag_values = {
+        ":enable_checks": "true",
+    },
+)
