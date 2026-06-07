@@ -8,6 +8,6 @@ bazel_dep(name="rules_python", version="2.0.2")
 # sugarcube_bazel
 git_repository(
     name="sugarcube_bazel",
-    commit="c3819e525358b0cbc6ae8b845e1f1b6b58e3b68b",
+    commit="a999bdb617dd2a97a1b650e8032f4d37fe1c5be1",
     remote="https://github.com/somebody-else-sg/sugarcube_bazel.git",
 )
