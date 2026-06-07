@@ -31,19 +31,9 @@ to get started, even without being familiar with it.
 
 ### Requirements
 
- - Bash environment: MacOS and Linux should work out of the box. Windows apparently
-   could also work with a bash environment such MSYS2, but not tested. See Bazel
-   documentation on that.
- - Python3 environment: The passage checker is written in Python. Checks can be
-   disabled, but that is not recommended. Only a vanilla Python interpreter is
-   needed, no pip/uv packages.
  - Bazel: [See Bazel's Getting Started Guide](https://bazel.build/start)
- - Tools (to install by whatever method is appropriate):
-   - `GNU/coreutils` for basic commands (should be part of any system with bash)
-   - `sed` for file substitutions (should be part of any system with bash)
-   - `jq` for json parsing
-   - `html-xml-utils` for html parsing and query via `hxselect` (optional)
-   - `git` for Bazel to be able to download / clone this repository
+ - Python3 environment (3.8+): The scripts are written in Python. Only a vanilla
+   Python interpreter is needed, no pip/uv packages required or virtual environments.
 
 ### Importing sugarcube_bazel into a Bazel project
 
@@ -57,7 +47,6 @@ module(name = "my_game_project")
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
-bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(name = "rules_python", version = "2.0.2")
 
 # sugarcube_bazel
@@ -74,11 +63,11 @@ you want to give it. Note that this is the overall project which could contain m
 games. In fact, one benefit of `sugarcube_bazel` is being able to create multiple games
 that share many passages and assets, but still produce standalone deployments.
 
-The lines with `bazel_skylib`, `rules_shell` and `rules_python` simply import dependencies
+The lines with `bazel_skylib` and `rules_python` simply import dependencies
 of `sugarcube_bazel`. And, of course, the `git_repository` statement imports `sugarcube_bazel`
-itself. Note that the `branch = "main"` line could be replaced by either `commit = "<commit hash>"`
+itself. Note that the `branch = "main"` line should be replaced by either `commit = "<commit hash>"`
 or `tag = "<tag name>"` to point to a particular commit or tag rather than the latest state
-of the main branch.
+of the main branch (which is unstable and not consistently reproducible).
 
 ### Defining a sugarcube_story target
 
@@ -158,7 +147,7 @@ The `sugarcube_story` rule expects a few parameters:
    looks like.
  - `format` (optional): The Sugarcube format file to use, by default it uses
    `@sugarcube_bazel//formats/sugarcube-2.37.3:format`, but other formats are
-   available and new ones can be defined with the `sugarcube_format` rule.
+   available and new or custom ones can be passed in.
 
 To build the story, invoke Bazel as follows from the top-level directory:
 
@@ -287,7 +276,7 @@ First, inherent to Bazel, all files declared as making up a target of any kind,
 including `filegroup` targets (e.g., typical for assets like images and videos),
 must exist. Any modification to the files triggers the re-building of whatever
 steps are necessary (i.e., that's why build systems exist, ultimately). Similarly,
-required fields cannot be missing from targe definitions.
+required fields cannot be missing from target definitions.
 
 Second, certain rules are applied to make sure that only libraries are listed
 as dependencies and only ordinary files are listed as data dependencies (aka assets).
@@ -314,9 +303,6 @@ This final set of checks can be disabled with a build command option, e.g.:
 ```sh
 bazel build //:my_story --@sugarcube_bazel//:enable_checks=false
 ```
-
-N.B.: Disabling those checks also avoids Python if, for some reason, there's
-an issue getting that working on your system.
 
 The macro usage checks rely on having a full list of macros available. That
 list is constructed from the built-in macros (see `scripts/sugarcube_macro_list.json`),
@@ -351,6 +337,42 @@ listed (like `"set": {},`). A container macro should be contain the boolean
 macro, such as `if-elseif-else`, should list its intermediate tags.
 Finally, a deprecated macro can point to its suggested replacement, if no
 direct replacement exists, use `"deprecated_for": "unknown"`.
+
+### Converting an existing Sugarcube story
+
+If you have an existing Sugarcube story that you wish to convert or port over to
+using `sugarcube_bazel`, there are a few options to make this easier.
+
+In the `scripts` directory, there are two useful scripts: `extract_passage` and
+`extract_story`. The first can be used to find a particular passage, by name,
+within a (compiled) Sugarcube story (aka, the main html file) and extract it into
+a plain text `.scp` file as used by `sugarcube_bazel`. That can be useful when
+manually porting over a project, and going about it passage by passage. For example:
+
+```sh
+bazel build //scripts:extract_passage
+bazel-bin/scripts/extract_passage --input the_mall.html --passage StoryCaption --output story_caption.scp
+```
+
+The `extract_story` script is a more comprehensive conversion script that attempts
+to extract all passages and extra html elements (like scripts and stylesheets), and
+ultimately produce a directory containing all of those broken up into individual
+files. Obviously, this could lead to numerous files and a very messy result, given
+that Sugarcube has no inherent organization. For example, for a story in `the_mall.html`,
+you could output all passages, user-scripts, and stylesheets, along with a working
+`BUILD.bazel` file (hopefully) into a destination directory `the_mall_dir` using
+the following command (also, telling it that assets are located in the `images`
+subdirectory):
+
+```sh
+bazel build //scripts:extract_story
+bazel-bin/scripts/extract_story --input the_mall.html --output the_mall_dir/ --build_file --assets_dir images
+```
+
+Of course, once this `sugarcube_bazel` version has been produced, it is still going
+to need a lot of work to organize the passages in meaningful ways to get any real
+benefit from using this build system. Regardless, these scripts are provided to
+make that process easier.
 
 ## License
 

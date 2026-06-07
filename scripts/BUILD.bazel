@@ -1,58 +1,49 @@
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_python//python:py_binary.bzl", "py_binary")
 
-sh_binary(
-    name = "scp_to_html",
-    srcs = [
-        "scp_to_html.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "split_format_file",
-    srcs = [
-        "split_format_file.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "make_story",
-    srcs = [
-        "make_story.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "make_inner_data",
-    srcs = [
-        "make_inner_data.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "extract_passage",
-    srcs = [
-        "extract_passage.sh",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 py_binary(
-    name = "check_sugarcube_macros",
-    srcs = [
+    name="check_sugarcube_macros",
+    srcs=[
         "check_sugarcube_macros.py",
     ],
-    visibility = ["//visibility:public"],
+    visibility=["//visibility:public"],
 )
 
 filegroup(
-    name = "builtin_macros",
-    srcs = [
+    name="builtin_macros",
+    srcs=[
         "sugarcube_macro_list.json",
     ],
-    visibility = ["//visibility:public"],
+    visibility=["//visibility:public"],
+)
+
+py_binary(
+    name="extract_passage",
+    srcs=[
+        "extract_passage.py",
+    ],
+    visibility=["//visibility:public"],
+)
+
+py_binary(
+    name="extract_story",
+    srcs=[
+        "extract_story.py",
+    ],
+    visibility=["//visibility:public"],
+)
+
+py_binary(
+    name="scp_to_html",
+    srcs=[
+        "scp_to_html.py",
+    ],
+    visibility=["//visibility:public"],
+)
+
+py_binary(
+    name="make_story",
+    srcs=[
+        "make_story.py",
+    ],
+    visibility=["//visibility:public"],
 )

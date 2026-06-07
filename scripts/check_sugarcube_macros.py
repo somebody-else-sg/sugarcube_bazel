@@ -88,9 +88,7 @@ class SugarcubeMacroChecker:
         self._closing_pattern = re.compile(rf"<<\s*/\s*([^\s<>]+)\s*>>", re.IGNORECASE)
 
         # Regex for user-defined widget: <<widget widgetName[ container]>>
-        self._widget_pattern = re.compile(
-            rf"<<\s*widget\s+([^\s<>]+)\s*([^\s<>]*)\s*>>", re.IGNORECASE
-        )
+        self._widget_pattern = re.compile(rf"<<\s*widget\s+([^\s<>]+)\s*([^\s<>]*)\s*>>", re.IGNORECASE)
 
         self._comment_pattern = re.compile(rf"(/\*|\*/|/%|%/|<!--|-->)", re.IGNORECASE)
 
@@ -142,9 +140,7 @@ class SugarcubeMacroChecker:
         else:
             return None
 
-    def check(
-        self, passages_files: List[str], extract_widgets: bool, ignore_unknown: bool
-    ) -> List[Dict]:
+    def check(self, passages_files: List[str], extract_widgets: bool, ignore_unknown: bool) -> List[Dict]:
         """Parse the text and return invalid, missing_closing, and corrupted tag info."""
 
         for passage in passages_files:
@@ -160,27 +156,17 @@ class SugarcubeMacroChecker:
                     for comment_match in self._comment_pattern.finditer(p_line):
                         if comment_match.group(1) in ["/*", "/%", "<!--"]:
                             if not any(in_comment):
-                                uncomment_ln += p_line[
-                                    last_valid_col : comment_match.start()
-                                ]
+                                uncomment_ln += p_line[last_valid_col : comment_match.start()]
                                 last_valid_col = comment_match.start()
-                            in_comment[
-                                ["/*", "/%", "<!--"].index(comment_match.group(1))
-                            ] = True
+                            in_comment[["/*", "/%", "<!--"].index(comment_match.group(1))] = True
                         elif comment_match.group(1) in ["*/", "%/", "-->"]:
-                            in_comment[
-                                ["*/", "%/", "-->"].index(comment_match.group(1))
-                            ] = False
+                            in_comment[["*/", "%/", "-->"].index(comment_match.group(1))] = False
                             if not any(in_comment):
-                                next_valid_col = comment_match.start() + len(
-                                    comment_match.group(1)
-                                )
+                                next_valid_col = comment_match.start() + len(comment_match.group(1))
                                 col_offsets.append(
                                     (
                                         len(uncomment_ln),
-                                        col_offsets[-1][1]
-                                        + next_valid_col
-                                        - last_valid_col,
+                                        col_offsets[-1][1] + next_valid_col - last_valid_col,
                                     )
                                 )
                                 last_valid_col = next_valid_col
@@ -208,9 +194,7 @@ class SugarcubeMacroChecker:
                         )
                         if extract_widgets and open_match.group(1) == "widget":
                             self._parse_user_widget(
-                                uncomment_ln[
-                                    open_match.start() : open_match.end()
-                                ].strip(),
+                                uncomment_ln[open_match.start() : open_match.end()].strip(),
                                 passage,
                                 p_line_num,
                             )
@@ -242,16 +226,9 @@ class SugarcubeMacroChecker:
                 elif m_call.keyword in self.macro_tags:
                     is_closing = True
                     is_macro_tag = True
-                    last_match_idx = max(
-                        [
-                            find_last_idx_in_open_stack(kw)
-                            for kw in self.macro_tags[m_call.keyword]
-                        ]
-                    )
+                    last_match_idx = max([find_last_idx_in_open_stack(kw) for kw in self.macro_tags[m_call.keyword]])
                     closing_keyword = (
-                        open_stack[last_match_idx]
-                        if last_match_idx >= 0
-                        else self.macro_tags[m_call.keyword][0]
+                        open_stack[last_match_idx] if last_match_idx >= 0 else self.macro_tags[m_call.keyword][0]
                     )
                 else:
                     is_closing = False
@@ -265,9 +242,7 @@ class SugarcubeMacroChecker:
                                 continue
                             self.error_list.append(
                                 {
-                                    "location": "{}:{}:{}".format(
-                                        passage, m_call.line, m_call.col
-                                    ),
+                                    "location": "{}:{}:{}".format(passage, m_call.line, m_call.col),
                                     "message": "Closing tag '<</{}>>' does not match any known macro!".format(
                                         closing_keyword
                                     ),
@@ -276,9 +251,7 @@ class SugarcubeMacroChecker:
                         else:
                             self.error_list.append(
                                 {
-                                    "location": "{}:{}:{}".format(
-                                        passage, m_call.line, m_call.col
-                                    ),
+                                    "location": "{}:{}:{}".format(passage, m_call.line, m_call.col),
                                     "message": "Child tag <<{}>> was found outside of a call to its parent macro <<{}>>!".format(
                                         ("" if is_macro_tag else "/") + m_call.keyword,
                                         closing_keyword,
@@ -291,9 +264,7 @@ class SugarcubeMacroChecker:
                         # Error for every open parent context that hasn't been closed.
                         self.error_list.append(
                             {
-                                "location": "{}:{}:{}".format(
-                                    passage, m_call.line, m_call.col
-                                ),
+                                "location": "{}:{}:{}".format(passage, m_call.line, m_call.col),
                                 "message": "Cannot find a closing tag for macro '<<{}>>'! Parent context for '<<{}>>' is closing here.".format(
                                     open_stack[i], closing_keyword
                                 ),
@@ -313,28 +284,18 @@ class SugarcubeMacroChecker:
                             continue
                         self.error_list.append(
                             {
-                                "location": "{}:{}:{}".format(
-                                    passage, m_call.line, m_call.col
-                                ),
-                                "message": "Macro '<<{}>>' does not exist!".format(
-                                    m_call.keyword
-                                ),
+                                "location": "{}:{}:{}".format(passage, m_call.line, m_call.col),
+                                "message": "Macro '<<{}>>' does not exist!".format(m_call.keyword),
                             }
                         )
                         continue
                     if called_macro.deprecated_for:
                         self.error_list.append(
                             {
-                                "location": "{}:{}:{}".format(
-                                    passage, m_call.line, m_call.col
-                                ),
-                                "message": "Macro '<<{}>>' is deprecated!".format(
-                                    m_call.keyword
-                                )
+                                "location": "{}:{}:{}".format(passage, m_call.line, m_call.col),
+                                "message": "Macro '<<{}>>' is deprecated!".format(m_call.keyword)
                                 + (
-                                    " Use '<<{}>>' instead.".format(
-                                        called_macro.deprecated_for
-                                    )
+                                    " Use '<<{}>>' instead.".format(called_macro.deprecated_for)
                                     if called_macro.deprecated_for != "unknown"
                                     else " Please find an alternative way."
                                 ),
@@ -366,7 +327,6 @@ class SugarcubeMacroChecker:
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         prog="check_sugarcube_macros",
         description="Check Sugarcube passages for correct closing and nesting of macros",
@@ -378,9 +338,7 @@ def main():
         type=str,
         help="Json files with dictionaries of macros (see sugarcube_macro_list.json)",
     )
-    parser.add_argument(
-        "-p", "--passages", nargs="+", type=str, help="Sugarcube passages to check"
-    )
+    parser.add_argument("-p", "--passages", nargs="+", type=str, help="Sugarcube passages to check")
     parser.add_argument(
         "-o",
         "--output",
@@ -413,9 +371,7 @@ def main():
         print("ERROR: There were errors while parsing the passages:", file=sys.stderr)
         for error_fields in checker.error_list:
             print(
-                "ERROR: {}: {}".format(
-                    error_fields["location"], error_fields["message"]
-                ),
+                "ERROR: {}: {}".format(error_fields["location"], error_fields["message"]),
                 file=sys.stderr,
             )
         sys.exit(1)
