@@ -12,15 +12,15 @@ separate passage files and assets, and organize them into libraries of passages.
 is written by Google and is widely used in the software industry. It can be used
 to create build graphs (nodes are build steps, and edges are all files flowing
 in and out of each step) and execute them in a hermetic and reproducible manner
-that also minimizing re-building, through caching and hashing of build artifacts.
+that also minimizes re-building, through caching and hashing of build artifacts.
 
 Needless to say, most of Bazel's power is overkill for SugarCube games, but it's
 just a very flexible system to use, with the main benefit that rather than writing
-large monolithic games, through these Bazel rules passages, each
+large monolithic games, through these Bazel libraries of passages, each
 written in a single file, can be grouped into small libraries and linked to the
 specific assets they use (media, images, videos, etc.). Then, top-level games can
 be created by grouping together (as dependencies) the libraries of passages it
-uses. Bazel takes care of producing to complete list of passages and assets,
+uses. Bazel takes care of producing a complete list of passages and assets,
 without duplicates, and producing a deployment of the game's top-level `index.html`
 file and a directory containing all needed assets (nothing more, nothing less).
 
@@ -142,7 +142,7 @@ The `sugarcube_story` rule expects a few parameters:
    gathered during the build. What cannot be gathered automatically, however, are
    the macros that are added via Javascript, e.g., using `Macro.add()`, either in one
    of the user scripts html elements or wherever else they could be added. And, thus,
-   this `user_macros` option all you to provide a list of such macros, see the list
+   this `user_macros` option is where you provide a list of such macros, see the list
    of built-in macros (`scripts/sugarcube_macro_list.json`) to see how that json file
    looks like.
  - `format` (optional): The Sugarcube format file to use, by default it uses
@@ -296,7 +296,7 @@ The checks include:
  - Macros defined with `<<widget ..>>` that have the same name or the name of
    a built-in macro (or a Javascript `Macro.add`). This is not technically
    an error when rendering the sugarcube story, but it's a very bad thing to
-   do because which macro takes precedence is arbitrary.
+   do because which macro takes precedence is arbitrary (depends on load order).
 
 This final set of checks can be disabled with a build command option, e.g.:
 
@@ -332,7 +332,7 @@ json file looks like:
 ```
 
 A simple macro with no "content" (no open and close pair) just needs to be
-listed (like `"set": {},`). A container macro should be contain the boolean
+listed (like `"set": {},`). A container macro should have the boolean
 `is_container` field (like `"capture": { "is_container": true }`). A multi-stage
 macro, such as `if-elseif-else`, should list its intermediate tags.
 Finally, a deprecated macro can point to its suggested replacement, if no
@@ -358,9 +358,10 @@ The `extract_story` script is a more comprehensive conversion script that attemp
 to extract all passages and extra html elements (like scripts and stylesheets), and
 ultimately produce a directory containing all of those broken up into individual
 files. Obviously, this could lead to numerous files and a very messy result, given
-that Sugarcube has no inherent organization. For example, for a story in `the_mall.html`,
-you could output all passages, user-scripts, and stylesheets, along with a working
-`BUILD.bazel` file (hopefully) into a destination directory `the_mall_dir` using
+that Sugarcube stories have no internal structure, just a flat set of passages and
+other html elements. For example, for a story in `the_mall.html`,
+you could output all passages, user-scripts, and stylesheets, along with a (hopefully)
+working `BUILD.bazel` file into a destination directory `the_mall_dir` using
 the following command (also, telling it that assets are located in the `images`
 subdirectory):
 
