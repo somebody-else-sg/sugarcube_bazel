@@ -1,4 +1,4 @@
-/* PASSAGE: Stats */
+:: Stats
 [img[passages/mall_pic.jpg]]
 
 <<if $mallvisits is 0>>

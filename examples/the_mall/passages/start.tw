@@ -1,4 +1,4 @@
-/* PASSAGE: Start */
+:: Start
 <<say_hello>>
 
 This mall simulator game is a simple example of building a sugarcube story with sugarcube_bazel.

@@ -10,7 +10,7 @@ filegroup(
 sugarcube_library(
     name="mall",
     srcs=[
-        "mall.scp",
+        "mall.tw",
     ],
     data=[
         ":mall_data",

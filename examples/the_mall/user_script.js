@@ -1,4 +1,3 @@
-<script role="script" id="twine-user-script" type="text/twine-javascript">
 /* twine-user-script-joiner */
 
 (function () {
@@ -24,5 +23,3 @@
     });
 
 }());
-
-</script>

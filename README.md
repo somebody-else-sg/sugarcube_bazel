@@ -90,12 +90,12 @@ package(default_visibility = ["//:__subpackages__"])
 
 filegroup(
   name = "user_scripts",
-  srcs = ["user_script.html"],
+  srcs = ["user_script.js"],
 )
 
 filegroup(
   name = "user_stylesheet",
-  srcs = ["user_stylesheet.html"],
+  srcs = ["user_stylesheet.css"],
 )
 
 filegroup(
@@ -107,8 +107,7 @@ sugarcube_story(
   name = "my_story",
   title = "My Story Title",
   ifid = "<insert IFID number>",
-  user_stylesheet = [":user_stylesheet"],
-  user_script = [":user_scripts"],
+  extra_html = [":user_scripts", ":user_stylesheet"],
   user_macros = [":user_macros"],
   deps = [
     "//passages:start",
@@ -127,12 +126,12 @@ The `sugarcube_story` rule expects a few parameters:
    game. See [TADS.org](https://www.tads.org/ifidgen/ifidgen).
  - `deps`: The list of libraries of passages that the story depends on. See the next
    section on definining libraries.
- - `user_stylesheet` (optional): The CSS stylesheets, i.e., html files containing only a block starting
-   with `<style role="stylesheet" id="<some name>" type="text/twine-css">`,
-   containing user-defined stylesheets for your story. Note that there can be multiple files.
- - `user_scripts` (optional): The user scripts, i.e., html files containing only a block starting
-   with `<script role="script" id="<some name>" type="text/twine-javascript">`,
-   containing user-defined javascript for your story. Note that there can be multiple files.
+ - `extra_html` (optional): Extra html or html-adjacent files to insert next to
+   passage data elements in the final output. This can contain `.html` files (will be
+   copy-pasted directly into output), `.css` files (will be wrapped in a `<style>` block),
+   and `.js` files (will be wrapped in a `<script>` block). Note that there can be multiple files.
+   This is where you would typically add what Twine calls user scripts or stylesheets.
+   Note that scripts and stylesheets can also just be inside 'twee' files.
  - `user_macros` (optional): The user macros list. This is a special json file that is used to list
    all the macros that are added in the user scripts. This is needed because this build
    system checks passages for correct usage of macros (e.g., correct nesting, no deprecated
@@ -171,12 +170,12 @@ the following arguments:
 
  - `name`: The name of the target (how other libraries or story targets refer to it).
  - `srcs`: The set of source files, aka passages, for this library. Passages are just
-   plain text files, with the file extension `.scp` (Sugarcube passage) and start
-   with `/* PASSAGE: Passage Id */` where `Passage Id` is the unique name of the
-   passage (i.e., the one used in links, etc.). After that first line, the rest is
-   simply the body of the passage in question.
- - `tags` (optional): The set of tags to apply to the passages, see sugarcube docs
-   for the usage of tags. Mainly, the `widget` tag is used to create widget passages.
+   plain text files. They can be 'twee' files with the extensions `.tw` or `.twee`
+   defining one or more passages (see [Twee docs](https://twinery.org/cookbook/terms/terms_twee.html)).
+ - `tags` (optional): The set of tags to apply to all the passages in this library,
+   see sugarcube docs for the usage of tags. Most importantly, **the `widget` tag has
+   to be present on libraries that contain widgets** (i.e., widget passages must be
+   segregated from other passages and marked as such).
  - `deps` (optional): The set of targets (libraries of passages) that this library
    depends on. The dependencies need to form an acyclic graph containing all passages
    that ultimately are needed for the complete game. Generally, a library would
@@ -200,9 +199,9 @@ sugarcube_library(
   name = "widgets",
   tags = ["widget"],  # Tag these passages as containing widgets (aka scripts).
   srcs = [
-    "media_coding.scp", # List of passages
-    "link_coding.scp",
-    "stats_coding.scp",
+    "media_coding.tw", # List of passages
+    "link_coding.tw",
+    "stats_coding.tw",
   ],
 )
 
@@ -210,7 +209,7 @@ sugarcube_library(
 sugarcube_library(
   name = "locations",
   srcs = [
-    "locations.scp", # A passage listing links to locations to visit.
+    "locations.tw", # A passage listing links to locations to visit.
   ],
   deps = [
     "//passages/home", # Depend on 'home' passages, since locations link to it.
@@ -229,13 +228,13 @@ filegroup(
 sugarcube_library(
   name = "start",
   srcs = [
-    "start.scp",          # The special 'Start' passage.
-    "stats.scp",          # A passage for displaying character stats.
-    "story_author.scp",   # The story author display passage.
-    "story_caption.scp",  # The story caption display passage.
-    "story_init.scp",     # The special 'StoryInit' passage that initializes all variables.
-    "story_menu.scp",     # The story side-bar menu passage.
-    "story_subtitle.scp", # The story sub-title passage.
+    "start.tw",          # The special 'Start' passage.
+    "stats.tw",          # A passage for displaying character stats.
+    "story_author.tw",   # The story author display passage.
+    "story_caption.tw",  # The story caption display passage.
+    "story_init.tw",     # The special 'StoryInit' passage that initializes all variables.
+    "story_menu.tw",     # The story side-bar menu passage.
+    "story_subtitle.tw", # The story sub-title passage.
   ],
   deps = [
     ":widgets",   # Bring in the widgets / scripts for this game.
@@ -247,11 +246,10 @@ sugarcube_library(
 )
 ```
 
-A typical passage might look like this (i.e., a text file with the preamble `/* PASSAGE: Stats */`
-and then the content, pretty simple):
+A typical 'twee' passage might look like this:
 
 ```
-/* PASSAGE: Stats */
+:: Stats
 [img[passages/mall_pic.jpg]]
 
 <<if $mallvisits is 0>>
@@ -346,12 +344,12 @@ using `sugarcube_bazel`, there are a few options to make this easier.
 In the `scripts` directory, there are two useful scripts: `extract_passage` and
 `extract_story`. The first can be used to find a particular passage, by name,
 within a (compiled) Sugarcube story (aka, the main html file) and extract it into
-a plain text `.scp` file as used by `sugarcube_bazel`. That can be useful when
+a plain text `.tw` file as used by `sugarcube_bazel`. That can be useful when
 manually porting over a project, and going about it passage by passage. For example:
 
 ```sh
 bazel build //scripts:extract_passage
-bazel-bin/scripts/extract_passage --input the_mall.html --passage StoryCaption --output story_caption.scp
+bazel-bin/scripts/extract_passage --input the_mall.html --passage StoryCaption --output story_caption.tw
 ```
 
 The `extract_story` script is a more comprehensive conversion script that attempts

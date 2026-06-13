@@ -68,7 +68,7 @@ def _sugarcube_library_impl(ctx):
 sugarcube_library = rule(
     implementation=_sugarcube_library_impl,
     attrs={
-        "srcs": attr.label_list(allow_files=[".scp"]),
+        "srcs": attr.label_list(allow_files=[".scp", ".tw", ".twee"]),
         "deps": attr.label_list(allow_files=[".html"], providers=[SugarcubeLibraryInfo]),
         "data": attr.label_list(),
         "_scp_to_html": attr.label(
@@ -147,10 +147,8 @@ def _sugarcube_story_impl(ctx):
             fmt_complete_file = fmt_file
 
     html_inserts = []
-    for sheet in ctx.attr.user_stylesheet:
-        html_inserts += sheet.files.to_list()
-    for script in ctx.attr.user_script:
-        html_inserts += script.files.to_list()
+    for extra in ctx.attr.extra_html:
+        html_inserts += extra.files.to_list()
 
     output_file = ctx.actions.declare_file(paths.join(ctx.label.name, "index.html"))
     inner_args = ctx.actions.args()
@@ -186,8 +184,7 @@ sugarcube_story = rule(
         "title": attr.string(mandatory=True),
         "ifid": attr.string(mandatory=True),
         "deps": attr.label_list(),
-        "user_stylesheet": attr.label_list(),
-        "user_script": attr.label_list(),
+        "extra_html": attr.label_list(),
         "user_macros": attr.label_list(),
         "format": attr.label(
             default=Label("@sugarcube_bazel//formats/sugarcube-2.37.3:format"),
