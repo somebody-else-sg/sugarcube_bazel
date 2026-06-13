@@ -5,9 +5,8 @@ git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "g
 bazel_dep(name="bazel_skylib", version="1.9.0")
 bazel_dep(name="rules_python", version="2.0.2")
 
-sugarcube_bazel
 git_repository(
     name="sugarcube_bazel",
-    commit="a999bdb617dd2a97a1b650e8032f4d37fe1c5be1",
+    commit="a3fffa73eade35370762a159bcf027cfbbb89b0f",
     remote="https://github.com/somebody-else-sg/sugarcube_bazel.git",
 )
