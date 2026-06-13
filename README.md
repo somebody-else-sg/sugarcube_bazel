@@ -172,9 +172,6 @@ the following arguments:
  - `srcs`: The set of source files, aka passages, for this library. Passages are just
    plain text files. They can be 'twee' files with the extensions `.tw` or `.twee`
    defining one or more passages (see [Twee docs](https://twinery.org/cookbook/terms/terms_twee.html)).
-   They can also have the file extension `.scp` (Sugarcube passage) and start
-   with `/* PASSAGE: Passage Id */` where `Passage Id` is the unique name of the
-   passage (legacy format, might be removed).
  - `tags` (optional): The set of tags to apply to all the passages in this library,
    see sugarcube docs for the usage of tags. Most importantly, **the `widget` tag has
    to be present on libraries that contain widgets** (i.e., widget passages must be

@@ -92,7 +92,7 @@ def main():
                 current_passage = None
                 current_html_block = None
                 input_format = InputFormat.PLAIN
-                with open(filepath_in, "r") as f_in:
+                with open(filepath_in, "r", encoding="utf-8") as f_in:
                     f_lineno = 0
                     for f_line in f_in:
                         f_lineno += 1
@@ -111,6 +111,13 @@ def main():
                                     current_html_block = "tw-passagedata"
                                     extra_attrs = json.loads(tnm.group(2)) if tnm.group(2) else {}
                                     current_tags = tags_str
+                                    if "widget" in args.tags:
+                                        print(
+                                            f"ERROR: Passage '{html.unescape(current_passage)}' has been built within a "
+                                            + "widget build target, but the twee file header does not contain that tag!",
+                                            file=sys.stderr,
+                                        )
+                                        sys.exit(1)
                                 else:
                                     current_passage = html.escape(_twee_unescape(ttm.group(1).strip()))
                                     extra_attrs = json.loads(ttm.group(3)) if ttm.group(3) else {}

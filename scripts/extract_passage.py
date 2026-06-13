@@ -100,7 +100,7 @@ def main():
     args = parser.parse_args()
 
     extractor = PassageExtractor(args.passage, args.format)
-    with open(args.input, "r") as h_file:
+    with open(args.input, "r", encoding="utf-8") as h_file:
         for h_line in h_file:
             extractor.feed(h_line)
             if extractor.collect_finished:

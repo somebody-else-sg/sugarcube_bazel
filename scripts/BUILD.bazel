@@ -41,6 +41,14 @@ py_binary(
 )
 
 py_binary(
+    name="scp_to_tw",
+    srcs=[
+        "scp_to_tw.py",
+    ],
+    visibility=["//visibility:public"],
+)
+
+py_binary(
     name="make_story",
     srcs=[
         "make_story.py",

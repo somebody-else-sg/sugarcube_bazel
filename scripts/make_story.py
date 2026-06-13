@@ -152,7 +152,7 @@ def main():
                         f_out.write('<style role="stylesheet" type="text/twine-css">\n')
                     elif filepath_in.suffix == ".js":
                         f_out.write('<script role="script" type="text/twine-javascript">\n')
-                    with open(filepath_in, "r") as f_in:
+                    with open(filepath_in, "r", encoding="utf-8") as f_in:
                         for f_line in f_in:
                             f_out.write(f_line)
                     if filepath_in.suffix == ".css":
@@ -161,7 +161,7 @@ def main():
                         f_out.write("</script>\n")
                 for filepath_in in args.input:
                     checker.current_filename = filepath_in
-                    with open(filepath_in, "r") as f_in:
+                    with open(filepath_in, "r", encoding="utf-8") as f_in:
                         for f_line in f_in:
                             checker.feed(f_line)
                             f_out.write(f_line)

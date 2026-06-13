@@ -148,7 +148,7 @@ class SugarcubeMacroChecker:
         for passage in passages_files:
             p_line_num = 0
             macro_calls = []
-            with open(passage, "r") as p_file:
+            with open(passage, "r", encoding="utf-8") as p_file:
                 in_comment = [False, False, False]
                 for p_line in p_file:
                     p_line_num += 1
