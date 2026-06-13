@@ -92,6 +92,8 @@ class SugarcubeMacroChecker:
 
         self._comment_pattern = re.compile(rf"(/\*|\*/|/%|%/|<!--|-->)", re.IGNORECASE)
 
+        self._twee_header_pattern = re.compile(r"^::\s*(\S.*\S)\n?$")
+
         self.error_list: List[Dict] = []
 
     def _parse_user_widget(self, widget_call: str, filepath: str, line_num: int):
@@ -182,6 +184,17 @@ class SugarcubeMacroChecker:
                                 break
                         return col + last_offset
 
+                    if tm := self._twee_header_pattern.fullmatch(uncomment_ln):
+                        macro_calls.append(
+                            SugarcubeMacroCall(
+                                "<<<< TWEE FILE HEADER >>>>",
+                                p_line_num,
+                                map_to_orig_col(tm.start()),
+                                True,
+                            )
+                        )
+                        continue
+
                     macro_calls_ln = []
                     for open_match in self._opening_pattern.finditer(uncomment_ln):
                         macro_calls_ln.append(
@@ -218,6 +231,21 @@ class SugarcubeMacroChecker:
                     return -1
 
             for m_call in macro_calls:
+                # After encountering a twee file header, make sure open-stack is empty
+                if m_call.keyword == "<<<< TWEE FILE HEADER >>>>":
+                    for open_kw in open_stack[::-1]:
+                        self.error_list.append(
+                            {
+                                "location": "{}:{}:{}".format(passage, m_call.line, 0),
+                                "message": "Cannot find a closing tag for macro '<<{}>>'! Reached the end of the passage.".format(
+                                    open_kw
+                                ),
+                            }
+                        )
+                    # Start fresh on next passage.
+                    open_stack = []
+                    continue
+
                 if not m_call.is_open:
                     is_closing = True
                     is_macro_tag = False

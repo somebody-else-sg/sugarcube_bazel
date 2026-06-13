@@ -6,14 +6,14 @@ sugarcube_library(
     name="widgets",
     tags=["widget"],
     srcs=[
-        "media_coding.scp",
+        "media_coding.tw",
     ],
 )
 
 sugarcube_library(
     name="locations",
     srcs=[
-        "locations.scp",
+        "locations.tw",
     ],
     deps=[
         "//passages/home",
@@ -29,13 +29,13 @@ filegroup(
 sugarcube_library(
     name="start",
     srcs=[
-        "start.scp",
-        "stats.scp",
-        "story_author.scp",
-        "story_caption.scp",
-        "story_init.scp",
-        "story_menu.scp",
-        "story_subtitle.scp",
+        "start.tw",
+        "stats.tw",
+        "story_author.tw",
+        "story_caption.tw",
+        "story_init.tw",
+        "story_menu.tw",
+        "story_subtitle.tw",
     ],
     deps=[
         ":widgets",

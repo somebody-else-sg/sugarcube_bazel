@@ -1,4 +1,4 @@
-/* PASSAGE: StoryInit */
+:: StoryInit
 <<run State.prng.init()>>
 
 /* Core Stats */

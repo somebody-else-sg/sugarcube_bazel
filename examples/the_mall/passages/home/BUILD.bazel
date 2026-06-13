@@ -5,6 +5,6 @@ package(default_visibility=["//:__subpackages__"])
 sugarcube_library(
     name="home",
     srcs=[
-        "home.scp",
+        "home.tw",
     ],
 )
