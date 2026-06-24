@@ -24,6 +24,82 @@ uses. Bazel takes care of producing a complete list of passages and assets,
 without duplicates, and producing a deployment of the game's top-level `index.html`
 file and a directory containing all needed assets (nothing more, nothing less).
 
+See the [Getting started](#getting-started) section to get started on using
+Bazel to build your Sugarcube story. As a lighter-weight option, you might find
+some of the standalone scripts useful too.
+
+## Standalone scripts
+
+There are a few useful standalone Python scripts in this repo that can be used
+in any project, without needing Bazel and a full setup.
+
+### Checking Sugarcube stories
+
+The `check_sugarcube_macros.py` script can be used to check for valid uses of
+macros inside the passages of a Sugarcube story. See the [Checks section](#checks)
+below for more information about the checks. To check a story (e.g., `my_story.html`)
+for consistent usage of macros, use this command:
+
+```sh
+./scripts/check_sugarcube_macros.py -p my_story.html -m ./scripts/sugarcube_macro_list.json
+```
+
+**NOTE**: On some systems, you might have to use `python3 ./scripts/check_sugarcube_macros.py`
+instead to launch the Python script (most environments should respect the "shebang",
+but some weird systems don't, like Windows).
+
+The script can also accept a set of `.tw` or `.twee` files instead of the final html:
+
+```sh
+./scripts/check_sugarcube_macros.py -p p1.tw p2.tw .. pn.tw -m ./scripts/sugarcube_macro_list.json
+```
+
+The `sugarcube_macro_list.json` file contains a list of all built-in Sugarcube macros.
+To allow the checker to also consider your own macros (either created with `widget` or
+added via `Macro.add` in Javascript), you must provide your own additional lists.
+For macros created with `widget`, you can extract them from the story, like so, to
+generate a `my_widgets.json` file:
+
+```sh
+./scripts/check_sugarcube_macros.py -p my_story.html --extract_widgets -o my_widgets.json
+```
+
+For macros created with `Macro.add`, you have to manually create that list, refer to
+the [Checks section](#checks) and the `sugarcube_macro_list.json` file to see how to
+create that file (it's pretty simple). If you still have macros that cannot be made
+known to the checker, the `--ignore_unknown` option can be used to ignore those errors.
+
+### Extracting Sugarcube passages
+
+If you have a Sugarcube story in the form of the final html file (or the intermediate
+"project" html file used by Twine), and you wish to extract passages into individual
+twee files (`.tw`/`.twee`), then you can use the extraction scripts. To extract an
+individual passage into a `.tw` file, use this:
+
+```sh
+./scripts/extract_passage.py -i my_story.html -p "My Passage" -o my_passage.tw
+```
+
+Where `My Passage` is the name of the passage you want to extract and `my_passage.tw`
+is the output file.
+
+To extract all passages, which is faster if you intend to do that anyway, then you
+can use the following:
+
+```sh
+./scripts/extract_story.py -i my_story.html -o some/path/to/my_story
+```
+
+This will create one file for each passage of the story and place them in the
+`some/path/to/my_story` directory. By default, the file names are the names of
+the passage converted to `snake_case`, e.g., "My Passage" ends up in `my_passage.tw`.
+To change this behavior, you can use the `--filename_case` option and pass either
+`snake_case`, `CamelCase`, or `identity` to it, where "identity" preserves the
+passage name exactly (e.g., `My Passage.tw`).
+
+The scripts could also be used manually to create a story out of the `.tw` files,
+but at that point, you'd be better off using the Bazel system described below.
+
 ## Getting started
 
 Familiarity with Bazel is preferable, but the following guide should be sufficient

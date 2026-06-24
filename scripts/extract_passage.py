@@ -95,7 +95,7 @@ def main():
         "--output",
         type=str,
         default="stdout",
-        help="Output Sugarcube passage file (.scp)",
+        help="Output Sugarcube passage file (.tw)",
     )
     args = parser.parse_args()
 
