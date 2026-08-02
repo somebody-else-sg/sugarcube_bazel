@@ -201,13 +201,13 @@ The `sugarcube_story` rule expects a few parameters:
  - `ifid`: The IFID (Interactive Fiction IDentifier) number assigned to this SugarCube
    game. See [TADS.org](https://www.tads.org/ifidgen/ifidgen).
  - `deps`: The list of libraries of passages that the story depends on. See the next
-   section on definining libraries.
+   section on defining libraries.
  - `extra_html` (optional): Extra html or html-adjacent files to insert next to
    passage data elements in the final output. This can contain `.html` files (will be
    copy-pasted directly into output), `.css` files (will be wrapped in a `<style>` block),
    and `.js` files (will be wrapped in a `<script>` block). Note that there can be multiple files.
-   This is where you would typically add what Twine calls user scripts or stylesheets.
-   Note that scripts and stylesheets can also just be inside 'twee' files.
+   This is where you would typically add what Twine calls user scripts or style-sheets.
+   Note that scripts and style-sheets can also just be inside 'twee' files.
  - `user_macros` (optional): The user macros list. This is a special json file that is used to list
    all the macros that are added in the user scripts. This is needed because this build
    system checks passages for correct usage of macros (e.g., correct nesting, no deprecated
@@ -429,15 +429,15 @@ bazel-bin/scripts/extract_passage --input the_mall.html --passage StoryCaption -
 ```
 
 The `extract_story` script is a more comprehensive conversion script that attempts
-to extract all passages and extra html elements (like scripts and stylesheets), and
+to extract all passages and extra html elements (like scripts and style-sheets), and
 ultimately produce a directory containing all of those broken up into individual
 files. Obviously, this could lead to numerous files and a very messy result, given
 that Sugarcube stories have no internal structure, just a flat set of passages and
 other html elements. For example, for a story in `the_mall.html`,
-you could output all passages, user-scripts, and stylesheets, along with a (hopefully)
+you could output all passages, user-scripts, and style-sheets, along with a (hopefully)
 working `BUILD.bazel` file into a destination directory `the_mall_dir` using
 the following command (also, telling it that assets are located in the `images`
-subdirectory):
+sub-directory):
 
 ```sh
 bazel build //scripts:extract_story
@@ -448,6 +448,198 @@ Of course, once this `sugarcube_bazel` version has been produced, it is still go
 to need a lot of work to organize the passages in meaningful ways to get any real
 benefit from using this build system. Regardless, these scripts are provided to
 make that process easier.
+
+## Advanced Topics
+
+### Configurable Stories
+
+In some cases, it can be useful to apply configuration settings on library
+targets downstream from a top-level story target. For example, to produce different
+variants of the same story, like versions with high and low resolution assets.
+Or, to include different subsets of a common set of passages, libraries or assets
+depending on which top-level story (or variant) is being built.
+
+Bazel has a rather convoluted system for such configurability, you can read about
+it [here](https://bazel.build/extending/config) if you want to. In a nutshell, you
+can define special `build_settings` entities that can have a type, a default value and
+a set of admissible values. Then, you can define `config_setting` labels that represent
+particular settings having particular values. Finally, in most attributes of
+your targets (e.g., `srcs`, `deps`, `data`, etc.) you can replace the usual ordinary
+list of files or targets with a `select` mechanism that selects one list based on
+the first `config_setting` that matches the current configuration. This is probably
+very confusing if you're not familiar with this already, that's normal. In practice,
+it's easier than it sounds.
+
+Before going into a practical example, another important piece is to understand how
+those configuration settings are set. Typically, this is done in two common ways.
+First, you can expose the build settings as "flags" and specify their value in the
+command-line invocation of bazel (e.g., like the `--@sugarcube_bazel//:enable_checks`
+flag that toggles checks for sugarcube rules). Second, Bazel provides a "transition"
+mechanism by which build rules can cross over from one set of configurations (e.g. default)
+to another. This transition mechanism is exactly what we'll use to create different
+variants of a top-level story target based on configuration settings. Let's show
+how this works by modifying the "mall" example.
+
+First, let's define a configuration setting for selection high resolution or low
+resolution assets. In a `BUILD.bazel` file (we'll use the top-level one), you add
+the following elements:
+
+```py
+load("@bazel_skylib//rules:common_settings.bzl", "string_setting")
+
+string_setting(
+    name="resolution",             # Name of the configuration setting
+    build_setting_default="high",  # Default value
+    values=["high", "low"],        # Admissible values
+)
+# Labels that match if all listed settings (flag_values) have the corresponding value
+config_setting(
+    name="high_resolution",
+    flag_values={":resolution": "high"}, # Matches when resolution is set to high
+)
+config_setting(
+    name="low_resolution",
+    flag_values={":resolution": "low"},  # Matches when resolution is set to low
+)
+```
+
+The `string_setting` could be replaced with `string_flag` to also make it available
+as a command-line argument when invoking bazel, but we don't need that here. There
+are also other types of settings (int, bool, list), see `bazel_skylib`'s
+[documentation](https://github.com/bazelbuild/bazel-skylib/blob/main/docs/common_settings_doc.md).
+
+Then, this configuration setting can be used to select different assets or passages
+when defining the targets. Here are a few common usage patterns:
+
+```py
+# This selects the high or low resolution assets for the menu's data.
+# Setting resolution to 'high' causes '//:high_resolution' to match, which selects "mall_pic_high.jpg".
+filegroup(
+    name="menu_data",
+    srcs=select({
+        "//:high_resolution": ["mall_pic_high.jpg"],
+        "//:low_resolution": ["mall_pic_low.jpg"],
+    }),
+)
+
+# You can also create two separate targets and select them later. For example:
+sugarcube_library(
+    name="widgets_high",
+    tags=["widget"],
+    srcs=[
+        "media_high_coding.tw",
+    ],
+    # Optional: Tell bazel to only allow this target in a high-resolution configuration.
+    target_compatible_with = ["//:high_resolution"],
+)
+sugarcube_library(
+    name="widgets_low",
+    tags=["widget"],
+    srcs=[
+        "media_low_coding.tw",
+    ],
+    # Optional: Tell bazel to only allow this target in a low-resolution configuration.
+    target_compatible_with = ["//:low_resolution"],
+)
+
+# Select the right target to depend on based on the settings.
+sugarcube_library(
+    name="start",
+    srcs=[
+        "start.tw",
+        "stats.tw",
+        "story_author.tw",
+        "story_caption.tw",
+        "story_init.tw",
+        "story_menu.tw",
+        "story_subtitle.tw",
+    ],
+    deps=[
+        ":locations",
+    ] + select({  # Select the appropriate dependency for the configuration.
+        "//:high_resolution": [":widgets_high"],
+        # NOTE: The "//conditions:default" is a special match-all condition to provide a fall-back "default" case.
+        "//conditions:default": [":widgets_low"],
+    }),
+    data=[
+        ":menu_data", # The assets are internally selected by this file group.
+    ],
+)
+```
+
+The above also illustrates a common way to affect the sugarcube passages with the
+configuration settings, that is, by providing different widget definition passages
+or different "init" passages with the same name but that are implemented differently.
+For example, you could have a `resolution_init_low.tw` passage like this:
+
+```
+:: ResolutionInit
+<<set setup.resolution to "low">>
+```
+
+And similarly, a `resolution_init_high.tw` that sets the same variable to "high", and
+in your `StoryInit` passage, you include `ResolutionInit`. Then, you'll be able to
+use the `setup.resolution` variable in your story passages to know the resolution
+setting of the story and make the appropriate modifications, for example, to the
+paths to the assets.
+
+Finally, we need to be able to provide different top-level story targets that are
+configured differently. For this purpose, `sugarcube_bazel` provides a "rule factory"
+function to create a specialized version of `sugarcube_story` that can override
+settings (through a "transition"). You have to create a `defs.bzl` file (any name with
+a `.bzl` extension, but `defs.bzl` is conventional). To register the resolution setting
+as a configurable setting for your stories, you can use the following `defs.bzl`:
+
+```py
+load("@sugarcube_bazel//:defs.bzl", "make_sugarcube_story_rule")
+
+my_sugarcube_story = make_sugarcube_story_rule(
+    user_settings={
+        "//:resolution": "high",  # Make '//:resolution` overridable, use "high" by default.
+    },
+)
+```
+
+With this, the `my_sugarcube_story` rule can be used in place of the default `sugarcube_story`
+rule, with one additional attribute called `settings` which is a dictionary of values
+for the settings to override. For example, for the mall game, we could have in the
+top-level `BUILD.bazel` file:
+
+```py
+# Load my_sugarcube_story instead of sugarcube_story
+load("//:defs.bzl", "my_sugarcube_story")
+
+my_sugarcube_story(
+    name="the_mall_low",
+    title="The Mall",
+    ifid="EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE",
+    settings={":resolution": "low"},   # Set resolution to "low"
+    extra_html=[":extras"],
+    user_macros=[":user_macros"],
+    deps=[
+        "//passages:start",
+    ],
+)
+
+my_sugarcube_story(
+    name="the_mall_high",
+    title="The Mall",
+    ifid="FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+    settings={":resolution": "high"},  # Set resolution to "high"
+    extra_html=[":extras"],
+    user_macros=[":user_macros"],
+    deps=[
+        "//passages:start",
+    ],
+)
+```
+
+Note that the configuration settings transition propagates down into the `deps`, `extra_html`
+and `user_macros`, so all of those targets can use the selection mechanisms demonstrated
+above. However, `select` cannot be used on the attributes of the story target directly.
+After this, building `the_mall_low` the usual way (`bazel build //:the_mall_low`) will
+build the low resolution version of your story.
+
 
 ## License
 

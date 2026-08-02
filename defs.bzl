@@ -178,35 +178,74 @@ def _sugarcube_story_impl(ctx):
     ]
 
 
-sugarcube_story = rule(
-    implementation=_sugarcube_story_impl,
-    attrs={
-        "title": attr.string(mandatory=True),
-        "ifid": attr.string(mandatory=True),
-        "deps": attr.label_list(),
-        "extra_html": attr.label_list(),
-        "user_macros": attr.label_list(),
-        "format": attr.label(
-            default=Label("@sugarcube_bazel//formats/sugarcube-2.37.3:format"),
-            cfg="exec",
-        ),
-        "_make_story": attr.label(
-            default=Label("@sugarcube_bazel//scripts:make_story"),
-            executable=True,
-            cfg="exec",
-        ),
-        "_check_sugarcube_macros": attr.label(
-            default=Label("@sugarcube_bazel//scripts:check_sugarcube_macros"),
-            executable=True,
-            cfg="exec",
-        ),
-        "_builtin_macros": attr.label(
-            default=Label("@sugarcube_bazel//scripts:builtin_macros"),
-            cfg="exec",
-        ),
-        "_enable_checks_flag": attr.label(
-            default=Label("@sugarcube_bazel//:enable_checks"),
-            cfg="exec",
-        ),
-    },
-)
+def make_sugarcube_story_rule(user_settings):
+    """Factory function for a top-level story rule with user settings.
+
+    Args:
+        user_settings: A dictionary of settings labels with default values,
+          e.g., {":resolution": "high"}.
+    """
+
+    # Pre-convert the allowed settings strings into actual Label objects
+    user_settings_keys = [str(Label(k)) for k in user_settings.keys()]
+    user_settings_labels_to_defaults = {Label(k): v for k, v in user_settings.items()}
+
+    def _user_settings_transition_impl(settings, attr):
+        outputs = {str(lbl): default_val for lbl, default_val in user_settings_labels_to_defaults.items()}
+
+        # attr.settings keys are now automatically Label objects!
+        for setting_label, target_value in attr.settings.items():
+            if setting_label in user_settings_labels_to_defaults:
+                outputs[str(setting_label)] = target_value
+            else:
+                fail(
+                    "Setting",
+                    setting_label,
+                    "is not part of declared user settings",
+                    user_settings_labels_to_defaults.keys(),
+                )
+
+        return outputs
+
+    user_settings_transition = transition(
+        inputs=[],
+        outputs=user_settings_keys,
+        implementation=_user_settings_transition_impl,
+    )
+
+    return rule(
+        implementation=_sugarcube_story_impl,
+        attrs={
+            "title": attr.string(mandatory=True),
+            "ifid": attr.string(mandatory=True),
+            "deps": attr.label_list(cfg=user_settings_transition),
+            "extra_html": attr.label_list(cfg=user_settings_transition),
+            "user_macros": attr.label_list(cfg=user_settings_transition),
+            "settings": attr.label_keyed_string_dict(default={}),
+            "format": attr.label(
+                default=Label("@sugarcube_bazel//formats/sugarcube-2.37.3:format"),
+                cfg="exec",
+            ),
+            "_make_story": attr.label(
+                default=Label("@sugarcube_bazel//scripts:make_story"),
+                executable=True,
+                cfg="exec",
+            ),
+            "_check_sugarcube_macros": attr.label(
+                default=Label("@sugarcube_bazel//scripts:check_sugarcube_macros"),
+                executable=True,
+                cfg="exec",
+            ),
+            "_builtin_macros": attr.label(
+                default=Label("@sugarcube_bazel//scripts:builtin_macros"),
+                cfg="exec",
+            ),
+            "_enable_checks_flag": attr.label(
+                default=Label("@sugarcube_bazel//:enable_checks"),
+                cfg="exec",
+            ),
+        },
+    )
+
+
+sugarcube_story = make_sugarcube_story_rule({})
